@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:24.05-py3
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
