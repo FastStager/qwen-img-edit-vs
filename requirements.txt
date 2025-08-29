@@ -1,6 +1,6 @@
 git+https://github.com/huggingface/diffusers.git@qwenimage-lru-cache-bypass
 kernels
-torchao==0.11.0
+torchao
 transformers
 accelerate
 safetensors
