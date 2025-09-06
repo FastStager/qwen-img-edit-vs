@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
+FROM nvcr.io/nvidia/pytorch:24.05-py3
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
@@ -12,10 +12,6 @@ ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir runpod
@@ -25,9 +21,6 @@ COPY optimization.py ./optimization.py
 
 COPY download.py ./
 RUN python download.py
-
-COPY compile.py ./
-RUN python compile.py
 
 COPY handler.py ./
 

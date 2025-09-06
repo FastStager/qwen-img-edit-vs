@@ -4,26 +4,101 @@ import numpy as np
 from PIL import Image
 import base64
 import io
+import os
+import math
+
+from diffusers import FlowMatchEulerDiscreteScheduler
+from qwenimage.pipeline_qwen_image_edit import QwenImageEditPipeline as QwenImageEditPipelineCustom
+from optimization import optimize_pipeline_
+from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
+from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
 
 pipe = None
 COMPILED_MODEL_PATH = "compiled_pipe.pt"
 
 def load_model():
     """
-    Loads the pre-compiled pipeline from disk. This is very fast.
+    Loads the pipeline. If a pre-compiled version exists, it loads from disk.
+    Otherwise, it compiles the model and saves it for future runs.
     """
     global pipe
     if pipe is not None:
         return pipe
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Loading compiled model from {COMPILED_MODEL_PATH} to {device}...")
     
-    pipe = torch.load(COMPILED_MODEL_PATH)
-    pipe.to(device)
-    
-    print("Model loaded successfully.")
+    if os.path.exists(COMPILED_MODEL_PATH):
+        print(f"Loading compiled model from {COMPILED_MODEL_PATH} to {device}...")
+        pipe = torch.load(COMPILED_MODEL_PATH)
+        pipe.to(device)
+        print("Model loaded successfully from disk.")
+    else:
+        print("Compiled model not found. Starting one-time compilation...")
+        pipe = load_and_compile_model()
+        print(f"Saving compiled pipeline to {COMPILED_MODEL_PATH} for future runs...")
+        torch.save(pipe, COMPILED_MODEL_PATH)
+        print("Compilation and saving complete.")
+
     return pipe
+
+def load_and_compile_model():
+    """
+    Loads the base model, compiles it, and returns the pipeline.
+    This is run only on the first start of a new worker.
+    """
+    dtype = torch.bfloat16
+    device = "cuda"
+    if not torch.cuda.is_available():
+        raise RuntimeError("GPU is required for compilation and inference.")
+
+    print("Loading base model for the first time...")
+    scheduler_config = {
+        "base_image_seq_len": 256,
+        "base_shift": math.log(3),
+        "invert_sigmas": False,
+        "max_image_seq_len": 8192,
+        "max_shift": math.log(3),
+        "num_train_timesteps": 1000,
+        "shift": 1.0,
+        "shift_terminal": None,
+        "stochastic_sampling": False,
+        "time_shift_type": "exponential",
+        "use_beta_sigmas": False,
+        "use_dynamic_shifting": True,
+        "use_exponential_sigmas": False,
+        "use_karras_sigmas": False,
+    }
+    scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_config)
+
+    compiled_pipe = QwenImageEditPipelineCustom.from_pretrained(
+        "Qwen/Qwen-Image-Edit",
+        scheduler=scheduler,
+        torch_dtype=dtype,
+        cache_dir="/app/cache"
+    ).to(device)
+
+    compiled_pipe.transformer.__class__ = QwenImageTransformer2DModel
+    compiled_pipe.transformer.set_attn_processor(QwenDoubleStreamAttnProcessorFA3())
+
+    try:
+        print("Loading and fusing LoRA weights...")
+        compiled_pipe.load_lora_weights(
+            "/app/cache/hub",
+            weight_name="Qwen-Image-Lightning-8steps-V1.1.safetensors"
+        )
+        compiled_pipe.fuse_lora()
+        print("LoRA weights fused successfully.")
+    except Exception as e:
+        print(f"Could not load LoRA: {e}")
+
+    print("Compiling the transformer model... This will take several minutes.")
+    try:
+        optimize_pipeline_(compiled_pipe, image=Image.new("RGB", (1024, 1024)), prompt="a cat")
+        print("AOT compilation successful.")
+    except Exception as e:
+        print(f"AOT compile failed: {e}")
+        
+    return compiled_pipe
 
 def base64_to_pil(base64_string):
     """Decodes a base64 string into a PIL Image."""
