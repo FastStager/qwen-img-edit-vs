@@ -1,22 +1,22 @@
 from huggingface_hub import snapshot_download
+import os
 
-print("Starting CPU-safe model download phase...")
 cache_dir = "/app/cache"
 
-print("Downloading Qwen/Qwen-Image-Edit...")
-snapshot_download(
-    repo_id="Qwen/Qwen-Image-Edit",
-    cache_dir=cache_dir,
-    local_files_only=False,
-    max_workers=8,
-)
+def ensure_model(repo_id: str):
+    target_dir = os.path.join(cache_dir, repo_id.replace("/", "--"))
+    if os.path.exists(target_dir):
+        print(f"✅ {repo_id} already cached at {target_dir}")
+        return
+    print(f"⬇️ downloading {repo_id}...")
+    snapshot_download(repo_id=repo_id, cache_dir=cache_dir, max_workers=8)
+    print(f"✅ finished downloading {repo_id}")
 
-print("Downloading lightx2v/Qwen-Image-Lightning LoRA...")
-snapshot_download(
-    repo_id="lightx2v/Qwen-Image-Lightning",
-    cache_dir=cache_dir,
-    local_files_only=False,
-    max_workers=8,
-)
+def warmup_all():
+    print("starting model warmup...")
+    ensure_model("Qwen/Qwen-Image-Edit")
+    ensure_model("lightx2v/Qwen-Image-Lightning")
+    print("all models ready")
 
-print("All models downloaded to /app/cache. Ready for GPU compilation phase.")
+if __name__ == "__main__":
+    warmup_all()
