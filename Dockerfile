@@ -9,6 +9,7 @@ ENV DIFFUSERS_CACHE=/app/cache
 ENV HOME=/app
 ENV PYTHONUNBUFFERED=1
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+ENV TORCHINDUCTOR_CACHE_DIR=/app/torchinductor_cache
 
 WORKDIR /app
 
