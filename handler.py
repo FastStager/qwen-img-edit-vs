@@ -30,8 +30,6 @@ def load_model():
 
     print("compiled model not found, starting one-time compilation...")
     pipe = load_and_compile_model()
-    print(f"saving compiled pipeline to {COMPILED_MODEL_PATH}")
-    torch.save(pipe, COMPILED_MODEL_PATH)
     return pipe
 
 def load_and_compile_model():
