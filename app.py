@@ -13,7 +13,7 @@ from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPlusPipeline
 from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
 from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
 from optimization import optimize_pipeline_
-from huggingface_hub import InferenceClient
+from huggingface_hub import InferenceClient, snapshot_download
 
 
 pipe = None
@@ -147,6 +147,22 @@ def polish_prompt_hf(prompt, img_list):
         print(f"Error during API call to Hugging Face: {e}")
         return prompt
 
+def download_models():
+    """Downloads models from Hugging Face Hub."""
+    print("Starting model download phase...")
+    cache_dir = "/app/cache"
+    snapshot_download(
+        repo_id="Qwen/Qwen-Image-Edit-2509",
+        cache_dir=cache_dir,
+        max_workers=8,
+    )
+    snapshot_download(
+        repo_id="lightx2v/Qwen-Image-Lightning",
+        cache_dir=cache_dir,
+        max_workers=8,
+    )
+    print("All models downloaded successfully.")
+
 def load_pipeline():
     """
     Loads and configures the Qwen-Image-Edit-Plus pipeline on GPU with custom scheduler, transformer, LoRA weights, and optimization.
@@ -154,6 +170,8 @@ def load_pipeline():
     global pipe
     if pipe is not None:
         return pipe
+
+    download_models()
 
     dtype = torch.bfloat16
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -245,7 +263,7 @@ def infer(
     if images is not None:
         for item in images:
             img_obj = item if isinstance(item, Image.Image) else item.get('image', item.get('composite'))
-            if isinstance(img_obj, str): 
+            if isinstance(img_obj, str): # filepath
                 pil_images.append(Image.open(img_obj).convert("RGB"))
             elif isinstance(img_obj, Image.Image):
                 pil_images.append(img_obj.convert("RGB"))

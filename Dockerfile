@@ -19,9 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 COPY qwenimage/ ./qwenimage/
 COPY optimization.py ./optimization.py
 
-COPY download.py ./
-RUN python download.py
-
 COPY handler.py ./
 COPY app.py ./
 COPY README.md ./

@@ -11,9 +11,26 @@ from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPlusPipeline
 from optimization import optimize_pipeline_
 from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
 from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
+from huggingface_hub import snapshot_download
 
 pipe = None
 COMPILED_MODEL_PATH = "compiled_pipe.pt"
+
+def download_models():
+    """Downloads models from Hugging Face Hub."""
+    print("Starting model download phase...")
+    cache_dir = "/app/cache"
+    snapshot_download(
+        repo_id="Qwen/Qwen-Image-Edit-2509",
+        cache_dir=cache_dir,
+        max_workers=8,
+    )
+    snapshot_download(
+        repo_id="lightx2v/Qwen-Image-Lightning",
+        cache_dir=cache_dir,
+        max_workers=8,
+    )
+    print("All models downloaded successfully.")
 
 def load_model():
     """
@@ -42,9 +59,10 @@ def load_model():
 
 def load_and_compile_model():
     """
-    Loads the base model, compiles it, and returns the pipeline.
-    This is run only on the first start of a new worker.
+    Downloads, loads, and compiles the model. This is run only on the first start of a new worker.
     """
+    download_models()
+
     dtype = torch.bfloat16
     device = "cuda"
     if not torch.cuda.is_available():
@@ -121,12 +139,10 @@ def handler(job):
         load_model()
 
     job_input = job['input']
-    # Expect a list of base64 images
     images_b64 = job_input.get('images', [])
     if not isinstance(images_b64, list):
          return {"error": "'images' must be a list of base64-encoded strings."}
     
-    # Also support single image for backward compatibility
     if not images_b64 and 'image' in job_input:
         images_b64 = [job_input.get('image')]
         
