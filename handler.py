@@ -7,35 +7,37 @@ import io
 import os
 import math
 
+from huggingface_hub import snapshot_download
+
 from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPlusPipeline
 from optimization import optimize_pipeline_
 from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
 from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
-from huggingface_hub import snapshot_download
 
 pipe = None
 COMPILED_MODEL_PATH = "compiled_pipe.pt"
 
 def download_models():
     """Downloads models from Hugging Face Hub."""
-    print("Starting model download phase...")
     cache_dir = "/app/cache"
+    print("Downloading Qwen/Qwen-Image-Edit-2509...")
     snapshot_download(
         repo_id="Qwen/Qwen-Image-Edit-2509",
         cache_dir=cache_dir,
         max_workers=8,
     )
+    print("Downloading lightx2v/Qwen-Image-Lightning LoRA...")
     snapshot_download(
         repo_id="lightx2v/Qwen-Image-Lightning",
         cache_dir=cache_dir,
         max_workers=8,
     )
-    print("All models downloaded successfully.")
+    print("All models downloaded.")
 
 def load_model():
     """
     Loads the pipeline. If a pre-compiled version exists, it loads from disk.
-    Otherwise, it compiles the model and saves it for future runs.
+    Otherwise, it downloads, compiles, and saves the model for future runs.
     """
     global pipe
     if pipe is not None:
@@ -49,17 +51,17 @@ def load_model():
         pipe.to(device)
         print("Model loaded successfully from disk.")
     else:
-        print("Compiled model not found. Starting one-time compilation...")
+        print("Compiled model not found. Starting one-time setup (download & compile)...")
         pipe = load_and_compile_model()
         print(f"Saving compiled pipeline to {COMPILED_MODEL_PATH} for future runs...")
         torch.save(pipe, COMPILED_MODEL_PATH)
-        print("Compilation and saving complete.")
+        print("First-time setup complete.")
 
     return pipe
 
 def load_and_compile_model():
     """
-    Downloads, loads, and compiles the model. This is run only on the first start of a new worker.
+    Downloads, loads, and compiles the model. Run only on the first start.
     """
     download_models()
 
@@ -68,22 +70,13 @@ def load_and_compile_model():
     if not torch.cuda.is_available():
         raise RuntimeError("GPU is required for compilation and inference.")
 
-    print("Loading base model for the first time...")
+    print("Loading base model...")
     scheduler_config = {
-        "base_image_seq_len": 256,
-        "base_shift": math.log(3),
-        "invert_sigmas": False,
-        "max_image_seq_len": 8192,
-        "max_shift": math.log(3),
-        "num_train_timesteps": 1000,
-        "shift": 1.0,
-        "shift_terminal": None,
-        "stochastic_sampling": False,
-        "time_shift_type": "exponential",
-        "use_beta_sigmas": False,
-        "use_dynamic_shifting": True,
-        "use_exponential_sigmas": False,
-        "use_karras_sigmas": False,
+        "base_image_seq_len": 256, "base_shift": math.log(3), "invert_sigmas": False,
+        "max_image_seq_len": 8192, "max_shift": math.log(3), "num_train_timesteps": 1000,
+        "shift": 1.0, "shift_terminal": None, "stochastic_sampling": False,
+        "time_shift_type": "exponential", "use_beta_sigmas": False, "use_dynamic_shifting": True,
+        "use_exponential_sigmas": False, "use_karras_sigmas": False,
     }
     scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_config)
 
@@ -156,7 +149,6 @@ def handler(job):
         seed = np.random.randint(0, np.iinfo(np.int32).max)
 
     generator = torch.Generator(device="cuda").manual_seed(seed)
-    
     input_images = [base64_to_pil(img_b64) for img_b64 in images_b64]
 
     print(f"Processing job with {len(input_images)} images, seed: {seed}, steps: {num_inference_steps}, guidance: {true_guidance_scale}")
