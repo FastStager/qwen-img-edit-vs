@@ -9,7 +9,6 @@ ENV DIFFUSERS_CACHE=/app/cache
 ENV HOME=/app
 ENV PYTHONUNBUFFERED=1
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-ENV TORCHINDUCTOR_CACHE_DIR=/app/torchinductor_cache
 
 WORKDIR /app
 
@@ -19,7 +18,12 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 COPY qwenimage/ ./qwenimage/
 COPY optimization.py ./optimization.py
-COPY download.py ./download.py
-COPY handler.py ./handler.py
+
+COPY download.py ./
+RUN python download.py
+
+COPY handler.py ./
+COPY app.py ./
+COPY README.md ./
 
 CMD ["python", "-u", "handler.py"]

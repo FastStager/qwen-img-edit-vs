@@ -46,7 +46,7 @@ def load_base_pipeline():
     try:
         pipe.load_lora_weights(
             "/app/cache/hub",
-            weight_name="Qwen-Image-Lightning-8steps-V1.1.safetensors"
+            weight_name="Qwen-Image-Lightning-8steps-V2.0-bf16.safetensors"
         )
         pipe.fuse_lora()
         print("LoRA weights fused successfully.")
