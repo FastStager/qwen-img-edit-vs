@@ -14,7 +14,7 @@ charset-normalizer==3.4.3
 click==8.2.1
 cryptography==45.0.6
 dashscope==1.24.2
-diffusers @ git+https://github.com/huggingface/diffusers.git@9b92241cbe3f7da884b374cdad553eacb2c0ad80
+diffusers 
 exceptiongroup==1.3.0
 fastapi==0.116.1
 ffmpy==0.6.1
