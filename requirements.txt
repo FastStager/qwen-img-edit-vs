@@ -2,8 +2,7 @@ torch
 torchvision
 torchao==0.11.0
 
-git+https://github.com/huggingface/diffusers.git@9b92241cbe3f7da884b374cdad553eacb2c0ad80
-
+git+https://github.com/huggingface/diffusers.git
 transformers
 sentencepiece
 safetensors
