@@ -9,7 +9,7 @@ import os
 import base64
 import json
 
-from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPlusPipeline
+from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPipeline
 from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
 from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
 from optimization import optimize_pipeline_
@@ -165,13 +165,11 @@ def download_models():
 
 def load_pipeline():
     """
-    Loads and configures the Qwen-Image-Edit-Plus pipeline on GPU with custom scheduler, transformer, LoRA weights, and optimization.
+    Downloads, loads, configures, and compiles the pipeline.
     """
     global pipe
     if pipe is not None:
         return pipe
-
-    download_models()
 
     dtype = torch.bfloat16
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -179,24 +177,15 @@ def load_pipeline():
         raise RuntimeError("GPU is required for inference.")
 
     scheduler_config = {
-        "base_image_seq_len": 256,
-        "base_shift": math.log(3),
-        "invert_sigmas": False,
-        "max_image_seq_len": 8192,
-        "max_shift": math.log(3),
-        "num_train_timesteps": 1000,
-        "shift": 1.0,
-        "shift_terminal": None,
-        "stochastic_sampling": False,
-        "time_shift_type": "exponential",
-        "use_beta_sigmas": False,
-        "use_dynamic_shifting": True,
-        "use_exponential_sigmas": False,
-        "use_karras_sigmas": False,
+        "base_image_seq_len": 256, "base_shift": math.log(3), "invert_sigmas": False,
+        "max_image_seq_len": 8192, "max_shift": math.log(3), "num_train_timesteps": 1000,
+        "shift": 1.0, "shift_terminal": None, "stochastic_sampling": False,
+        "time_shift_type": "exponential", "use_beta_sigmas": False, "use_dynamic_shifting": True,
+        "use_exponential_sigmas": False, "use_karras_sigmas": False,
     }
     scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_config)
 
-    pipe = QwenImageEditPlusPipeline.from_pretrained(
+    pipe = QwenImageEditPipeline.from_pretrained(
         "Qwen/Qwen-Image-Edit-2509",
         scheduler=scheduler,
         torch_dtype=dtype,
@@ -209,7 +198,7 @@ def load_pipeline():
     try:
         pipe.load_lora_weights(
             "lightx2v/Qwen-Image-Lightning",
-            weight_name="Qwen-Image-Lightning-8steps-V2.0-bf16.safetensors",
+            weight_name="Qwen-Image-Lightning-8steps-V2.0-bf16.safensors",
             cache_dir="/app/cache"
         )
         pipe.fuse_lora()
@@ -225,6 +214,7 @@ def load_pipeline():
         print(f"AOT compile failed: {e}")
 
     return pipe
+
 
 MAX_SEED = np.iinfo(np.int32).max
 

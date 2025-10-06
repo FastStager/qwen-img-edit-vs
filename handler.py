@@ -9,7 +9,7 @@ import math
 
 from huggingface_hub import snapshot_download
 
-from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPlusPipeline
+from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPipeline
 from optimization import optimize_pipeline_
 from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
 from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
@@ -21,50 +21,16 @@ def download_models():
     """Downloads models from Hugging Face Hub."""
     cache_dir = "/app/cache"
     print("Downloading Qwen/Qwen-Image-Edit-2509...")
-    snapshot_download(
-        repo_id="Qwen/Qwen-Image-Edit-2509",
-        cache_dir=cache_dir,
-        max_workers=8,
-    )
+    snapshot_download(repo_id="Qwen/Qwen-Image-Edit-2509", cache_dir=cache_dir, max_workers=8)
     print("Downloading lightx2v/Qwen-Image-Lightning LoRA...")
-    snapshot_download(
-        repo_id="lightx2v/Qwen-Image-Lightning",
-        cache_dir=cache_dir,
-        max_workers=8,
-    )
+    snapshot_download(repo_id="lightx2v/Qwen-Image-Lightning", cache_dir=cache_dir, max_workers=8)
     print("All models downloaded.")
-
-def load_model():
-    """
-    Loads the pipeline. If a pre-compiled version exists, it loads from disk.
-    Otherwise, it downloads, compiles, and saves the model for future runs.
-    """
-    global pipe
-    if pipe is not None:
-        return pipe
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    if os.path.exists(COMPILED_MODEL_PATH):
-        print(f"Loading compiled model from {COMPILED_MODEL_PATH} to {device}...")
-        pipe = torch.load(COMPILED_MODEL_PATH)
-        pipe.to(device)
-        print("Model loaded successfully from disk.")
-    else:
-        print("Compiled model not found. Starting one-time setup (download & compile)...")
-        pipe = load_and_compile_model()
-        print(f"Saving compiled pipeline to {COMPILED_MODEL_PATH} for future runs...")
-        torch.save(pipe, COMPILED_MODEL_PATH)
-        print("First-time setup complete.")
-
-    return pipe
 
 def load_and_compile_model():
     """
     Downloads, loads, and compiles the model. Run only on the first start.
     """
     download_models()
-
     dtype = torch.bfloat16
     device = "cuda"
     if not torch.cuda.is_available():
@@ -80,7 +46,8 @@ def load_and_compile_model():
     }
     scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_config)
 
-    compiled_pipe = QwenImageEditPlusPipeline.from_pretrained(
+    # Using the correct class name here
+    compiled_pipe = QwenImageEditPipeline.from_pretrained(
         "Qwen/Qwen-Image-Edit-2509",
         scheduler=scheduler,
         torch_dtype=dtype,
@@ -94,7 +61,7 @@ def load_and_compile_model():
         print("Loading and fusing LoRA weights...")
         compiled_pipe.load_lora_weights(
             "lightx2v/Qwen-Image-Lightning",
-            weight_name="Qwen-Image-Lightning-8steps-V2.0-bf16.safetensors",
+            weight_name="Qwen-Image-Lightning-8steps-V2.0-bf16.safensors",
             cache_dir="/app/cache"
         )
         compiled_pipe.fuse_lora()
@@ -102,7 +69,7 @@ def load_and_compile_model():
     except Exception as e:
         print(f"Could not load LoRA: {e}")
 
-    print("Compiling the transformer model... This will take several minutes.")
+    print("Compiling the transformer model...")
     try:
         dummy_images = [Image.new("RGB", (1024, 1024)), Image.new("RGB", (1024, 1024))]
         optimize_pipeline_(compiled_pipe, image=dummy_images, prompt="a cat")
@@ -112,48 +79,58 @@ def load_and_compile_model():
         
     return compiled_pipe
 
+def load_model():
+    """
+    Loads the pipeline. If a pre-compiled version exists, it loads from disk.
+    Otherwise, it downloads, compiles, and saves the model for future runs.
+    """
+    global pipe
+    if pipe is not None:
+        return pipe
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if os.path.exists(COMPILED_MODEL_PATH):
+        print(f"Loading compiled model from {COMPILED_MODEL_PATH} to {device}...")
+        pipe = torch.load(COMPILED_MODEL_PATH)
+        pipe.to(device)
+        print("Model loaded successfully from disk.")
+    else:
+        print("Compiled model not found. Starting one-time setup...")
+        pipe = load_and_compile_model()
+        print(f"Saving compiled pipeline to {COMPILED_MODEL_PATH} for future runs...")
+        torch.save(pipe, COMPILED_MODEL_PATH)
+        print("First-time setup complete.")
+    return pipe
+
 def base64_to_pil(base64_string):
-    """Decodes a base64 string into a PIL Image."""
     image_bytes = base64.b64decode(base64_string)
     return Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
 def pil_to_base64(pil_image):
-    """Encodes a PIL Image into a base64 string."""
     buffered = io.BytesIO()
     pil_image.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 def handler(job):
-    """
-    RunPod serverless handler function.
-    """
     global pipe
     if pipe is None:
         load_model()
-
     job_input = job['input']
     images_b64 = job_input.get('images', [])
     if not isinstance(images_b64, list):
          return {"error": "'images' must be a list of base64-encoded strings."}
-    
     if not images_b64 and 'image' in job_input:
         images_b64 = [job_input.get('image')]
-        
     prompt = job_input.get('prompt', 'make it beautiful')
     seed = job_input.get('seed', None)
     true_guidance_scale = float(job_input.get('true_guidance_scale', 1.0))
     num_inference_steps = int(job_input.get('num_inference_steps', 8))
     num_outputs = int(job_input.get('num_outputs', 1))
-
     if seed is None:
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-
     generator = torch.Generator(device="cuda").manual_seed(seed)
     input_images = [base64_to_pil(img_b64) for img_b64 in images_b64]
-
     print(f"Processing job with {len(input_images)} images, seed: {seed}, steps: {num_inference_steps}, guidance: {true_guidance_scale}")
     print(f"Prompt: {prompt}")
-
     try:
         output_images = pipe(
             image=input_images if input_images else None,
@@ -164,15 +141,11 @@ def handler(job):
             true_cfg_scale=true_guidance_scale,
             num_images_per_prompt=num_outputs,
         ).images
-
         output_b64_list = [pil_to_base64(img) for img in output_images]
-        
         result = {"images": output_b64_list, "seed": seed, "version": "2.0"}
         if len(output_b64_list) == 1:
             result["image"] = output_b64_list[0]
-
         return result
-
     except Exception as e:
         print(f"Inference error: {e}")
         return {"error": str(e)}
