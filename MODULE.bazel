@@ -17,7 +17,7 @@ oci.pull(
 use_repo(oci, "runpod_base_image")
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
-pip.install(
+pip.parse(
     name = "pip",
     requirements_lock = "//:requirements.txt",
 )
