@@ -1,20 +1,18 @@
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("@pip//:requirements.bzl", "all_requirements")
+
+py_library(
+    name = "all_deps",
+    deps = all_requirements,
+)
 
 py_binary(
     name = "compile_model_bin",
     srcs = ["compile_model.py"],
     main = "compile_model.py",
-    deps = [
-        "@pip//torch",
-        "@pip//torchvision",
-        "@pip//diffusers",
-        "@pip//transformers",
-        "@pip//huggingface-hub",
-        "@pip//safetensors",
-        "@pip//accelerate",
-    ],
+    deps = [":all_deps"],
     python_version = "PY3",
 )
 
@@ -56,7 +54,7 @@ oci_image(
     tars = [
         ":app_layer",
         ":model_layer",
-        "@pip//:requirements_layer",
+        "@pip//:all_whl_layer",
     ],
 )
 
