@@ -48,7 +48,7 @@ pkg_tar(
 
 oci_image(
     name = "qwen_image_server",
-    base = "@runpod_base_image//image",
+    base = "runpod/pytorch:2.3.0-py3.11-cuda12.1.1-devel-ubuntu22.04",
     entrypoint = [
         "/usr/bin/python3.11",
         "/app/handler.py",
@@ -56,7 +56,7 @@ oci_image(
     tars = [
         ":app_layer",
         ":model_layer",
-        "@pip//:all_whl_layer",
+        "@pip//:requirements_layer",
     ],
 )
 
