@@ -1,0 +1,9 @@
+package(default_visibility = ["//visibility:public"])
+
+load("@rules_python//python:toolchain.bzl", "py_toolchain")
+
+py_toolchain(
+    name = "runpod_python_toolchain",
+    path = "/usr/bin/python3.11",
+    python_version = "3.11",
+)
