@@ -11,7 +11,7 @@ bazel_dep(name = "rules_pkg", version = "1.0.1")
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
     name = "runpod_base_image",
-    repository = "runpod/pytorch",
+    image = "docker.io/runpod/pytorch",
     tag = "2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04",
 )
 use_repo(oci, "runpod_base_image")
