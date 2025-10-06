@@ -9,13 +9,21 @@ http_archive(
     ],
 )
 
-load("@rules_docker//docker:docker.bzl", "docker_repositories")
+load("@rules_docker//docker:docker.bzl", "docker_repositories", "container_pull")
 docker_repositories()
 
 load("@rules_docker//toolchains/docker:toolchain.bzl", "docker_toolchain_configure")
 docker_toolchain_configure(name = "docker_config")
 
+container_pull(
+    name = "runpod_pytorch_base",
+    registry = "docker.io",
+    repository = "runpod/pytorch",
+    tag = "2.3.0-py3.11-cuda12.1.1-devel-ubuntu22.04",
+)
 
+
+# Rules for managing Python dependencies
 http_archive(
     name = "rules_python",
     sha256 = "9d0409541a49646b866847b744b20d73899a803c1b26f54c5e3d2568b2089858",

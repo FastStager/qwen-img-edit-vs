@@ -10,6 +10,7 @@ filegroup(
     ]),
 )
 
+
 py_binary(
     name = "compile_model_bin",
     srcs = ["compile_model.py"],
@@ -39,13 +40,15 @@ genrule(
     timeout = "long",
 )
 
+
 container_image(
     name = "qwen_image_server",
+    
     base = "@runpod_pytorch_base//image",
+    
     files = [":app_srcs"],
     data_path = ".",
     data = [":compiled_model"],
-    # Copy Python dependencies from our pip_parse rule
     deps = [
         requirement("torch"),
         requirement("torchvision"),
@@ -63,11 +66,4 @@ container_image(
         requirement("runpod"),
     ],
     entrypoint = ["/usr/bin/python3", "/app/handler.py"],
-)
-
-container_pull(
-    name = "runpod_pytorch_base",
-    registry = "docker.io",
-    repository = "runpod/pytorch",
-    tag = "2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04",
 )
