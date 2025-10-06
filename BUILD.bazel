@@ -1,18 +1,9 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
 load("@rules_python//python:defs.bzl", "py_binary")
-load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push", "oci_pull")
-
-oci_pull(
-    name = "runpod_base_image",
-    # Use the specific, correct image tag
-    digest = "sha256:...", 
-    repository = "runpod/pytorch",
-    tag = "2.3.0-py3.11-cuda12.1.1-devel-ubuntu22.04", 
-)
 
 py_binary(
     name = "compile_model_bin",
     srcs = ["compile_model.py"],
-    # Main script entry point
     main = "compile_model.py",
     deps = [
         "@pip//torch",
@@ -20,7 +11,7 @@ py_binary(
         "@pip//diffusers",
         "@pip//transformers",
         "@pip//huggingface-hub",
-        "@pip//safetensors",
+        "@pip//safensors",
         "@pip//accelerate",
     ],
     python_version = "PY3",
@@ -35,10 +26,9 @@ genrule(
     timeout = "long",
 )
 
-
 oci_image(
     name = "qwen_image_server",
-    base = ":runpod_base_image",
+    base = "@runpod_base_image//image",
     data = glob([
         "handler.py",
         "optimization.py",
@@ -51,7 +41,6 @@ oci_image(
     entrypoint = ["/usr/bin/python3.11", "/app/handler.py"],
     tars = ["@pip//:all_whl_tars"],
 )
-
 
 oci_push(
     name = "push_image",
