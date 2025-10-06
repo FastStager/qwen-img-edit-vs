@@ -1,7 +1,7 @@
 torchao
 kernels
 
-git+https://github.com/huggingface/diffusers.git
+diffusers @ git+https://github.com/huggingface/diffusers.git
 
 transformers
 sentencepiece
