@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:24.05-py3
+FROM nvcr.io/nvidia/pytorch:24.02-py3
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
@@ -21,15 +21,18 @@ RUN apt-get update && \
     libglib2.0-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip uninstall -y torch torchvision torchaudio && \
+    pip install --pre --no-cache-dir \
+    torch==2.8.0.dev20251005+cu128 \
+    torchvision \
+    torchaudio \
+    --index-url https://download.pytorch.org/whl/nightly/cu121
+
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-
-RUN pip install --no-cache-dir --upgrade git+https://github.com/huggingface/diffusers.git
-
-RUN pip install --no-cache-dir runpod
-
+RUN pip cache purge && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir runpod
 
 COPY qwenimage/ ./qwenimage/
 COPY optimization.py ./optimization.py
