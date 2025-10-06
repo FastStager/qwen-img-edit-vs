@@ -21,8 +21,7 @@ python.toolchain(
     py_runtime = ":runpod_py_runtime",
 )
 
-register_toolchains(":runpod_py_toolchain")
-
+register_toolchains("//:runpod_py_toolchain")
 
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
