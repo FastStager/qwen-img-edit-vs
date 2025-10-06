@@ -1,0 +1,19 @@
+module(
+    name = "qwen_image_server",
+    version = "1.0",
+)
+
+bazel_dep(name = "rules_python", version = "0.31.0")
+bazel_dep(name = "rules_oci", version = "1.8.0")
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
+
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+
+
+pip.parse_requirements(
+    name = "pip",
+    requirements_lock = "//:requirements.txt",
+)
+
+use_repo(pip, "pip")

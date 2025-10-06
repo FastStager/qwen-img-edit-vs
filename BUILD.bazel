@@ -1,0 +1,61 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push", "oci_pull")
+
+oci_pull(
+    name = "runpod_base_image",
+    # Use the specific, correct image tag
+    digest = "sha256:...", 
+    repository = "runpod/pytorch",
+    tag = "2.3.0-py3.11-cuda12.1.1-devel-ubuntu22.04", 
+)
+
+py_binary(
+    name = "compile_model_bin",
+    srcs = ["compile_model.py"],
+    # Main script entry point
+    main = "compile_model.py",
+    deps = [
+        "@pip//torch",
+        "@pip//torchvision",
+        "@pip//diffusers",
+        "@pip//transformers",
+        "@pip//huggingface-hub",
+        "@pip//safetensors",
+        "@pip//accelerate",
+    ],
+    python_version = "PY3",
+)
+
+genrule(
+    name = "compiled_model",
+    tools = [":compile_model_bin"],
+    cmd = "$(location :compile_model_bin)",
+    outs = ["compiled_pipe.pt"],
+    tags = ["requires-gpu"],
+    timeout = "long",
+)
+
+
+oci_image(
+    name = "qwen_image_server",
+    base = ":runpod_base_image",
+    data = glob([
+        "handler.py",
+        "optimization.py",
+        "app.py",
+        "README.md",
+        "qwenimage/**/*.py",
+    ]),
+    data_path = "/app",
+    data_tar = ":compiled_model",
+    entrypoint = ["/usr/bin/python3.11", "/app/handler.py"],
+    tars = ["@pip//:all_whl_tars"],
+)
+
+
+oci_push(
+    name = "push_image",
+    image = ":qwen_image_server",
+    repository = "index.docker.io/$(DOCKER_USERNAME)/qwen-image-server-bazel",
+    tags = ["latest"],
+)
