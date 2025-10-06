@@ -13,3 +13,5 @@ huggingface-hub
 dashscope
 
 gradio
+spaces
+pillow
