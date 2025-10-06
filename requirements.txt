@@ -1,8 +1,7 @@
 torchao
 kernels
 
-diffusers @ git+https://github.com/huggingface/diffusers.git
-
+diffusers
 transformers
 sentencepiece
 safetensors
