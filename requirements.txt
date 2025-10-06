@@ -1,6 +1,7 @@
-torch
-torchvision
 torchao
+kernels
+
+git+https://github.com/huggingface/diffusers.git
 
 transformers
 sentencepiece
@@ -9,9 +10,6 @@ accelerate
 peft
 huggingface-hub
 
-kernels==0.10.2
-
 dashscope
 
 gradio
-runpod
