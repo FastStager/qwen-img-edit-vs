@@ -1,5 +1,6 @@
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
 load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
 
 py_binary(
     name = "compile_model_bin",
@@ -11,35 +12,49 @@ py_binary(
         "@pip//diffusers",
         "@pip//transformers",
         "@pip//huggingface-hub",
-        "@pip//safensors",
+        "@pip//safetensors",
         "@pip//accelerate",
     ],
     python_version = "PY3",
 )
 
 genrule(
-    name = "compiled_model",
+    name = "compiled_model_gen",
     tools = [":compile_model_bin"],
     cmd = "$(location :compile_model_bin)",
     outs = ["compiled_pipe.pt"],
     tags = ["requires-gpu"],
-    timeout = "long",
+)
+
+pkg_tar(
+    name = "app_layer",
+    srcs = glob([
+        "handler.py",
+        "optimization.py",
+        "app.py",
+        "README.md",
+    ]) + glob(["qwenimage/**/*.py"]),
+    package_dir = "/app",
+)
+
+pkg_tar(
+    name = "model_layer",
+    srcs = [":compiled_model_gen"],
+    package_dir = "/app",
 )
 
 oci_image(
     name = "qwen_image_server",
     base = "@runpod_base_image//image",
-    data = glob([
-        "handler.py",
-        "optimization.py",
-        "app.py",
-        "README.md",
-        "qwenimage/**/*.py",
-    ]),
-    data_path = "/app",
-    data_tar = ":compiled_model",
-    entrypoint = ["/usr/bin/python3.11", "/app/handler.py"],
-    tars = ["@pip//:all_whl_tars"],
+    entrypoint = [
+        "/usr/bin/python3.11",
+        "/app/handler.py",
+    ],
+    layers = [
+        ":app_layer",
+        ":model_layer",
+        "@pip//:all_whl_layer",
+    ],
 )
 
 oci_push(
