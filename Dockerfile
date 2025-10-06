@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:24.02-py3
+FROM runpod/pytorch:2.3.0-py3.11-cuda12.1.1-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
@@ -20,13 +20,6 @@ RUN apt-get update && \
     libdbus-1-dev \
     libglib2.0-dev \
     && rm -rf /var/lib/apt/lists/*
-
-RUN pip uninstall -y torch torchvision torchaudio && \
-    pip install --pre --no-cache-dir \
-    torch==2.8.0.dev20251005+cu128 \
-    torchvision \
-    torchaudio \
-    --index-url https://download.pytorch.org/whl/nightly/cu121
 
 COPY requirements.txt .
 
