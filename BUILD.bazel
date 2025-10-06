@@ -19,11 +19,14 @@ py_binary(
 )
 
 genrule(
-    name = "compiled_model_gen",
+    name = "compiled_model",
     tools = [":compile_model_bin"],
     cmd = "$(location :compile_model_bin)",
     outs = ["compiled_pipe.pt"],
-    tags = ["requires-gpu"],
+    tags = [
+        "requires-gpu",
+        "timeout=long",
+    ],
 )
 
 pkg_tar(
@@ -39,7 +42,7 @@ pkg_tar(
 
 pkg_tar(
     name = "model_layer",
-    srcs = [":compiled_model_gen"],
+    srcs = [":compiled_model"],
     package_dir = "/app",
 )
 
@@ -50,7 +53,7 @@ oci_image(
         "/usr/bin/python3.11",
         "/app/handler.py",
     ],
-    layers = [
+    tars = [
         ":app_layer",
         ":model_layer",
         "@pip//:all_whl_layer",
