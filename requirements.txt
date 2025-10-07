@@ -9,6 +9,7 @@ safetensors
 accelerate
 peft
 huggingface-hub
+pyyaml
 dashscope
 gradio
 runpod
@@ -16,4 +17,3 @@ pillow
 spaces
 packaging
 numpy
-pyyaml
