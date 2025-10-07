@@ -15,4 +15,5 @@ runpod
 pillow
 spaces
 packaging
+numpy
 pyyaml
