@@ -3,22 +3,22 @@ load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 
 _PY_DEPS = [
-    "@rules_python++pip+pip_torch//:pkg",
-    "@rules_python++pip+pip_torchvision//:pkg",
-    "@rules_python++pip+pip_diffusers//:pkg",
-    "@rules_python++pip+pip_transformers//:pkg",
-    "@rules_python++pip+pip_accelerate//:pkg",
-    "@rules_python++pip+pip_huggingface_hub//:pkg",
-    "@rules_python++pip+pip_sentencepiece//:pkg",
-    "@rules_python++pip+pip_safetensors//:pkg",  
-    "@rules_python++pip+pip_packaging//:pkg",    
-    "@rules_python++pip+pip_pyyaml//:pkg",
-    "@rules_python++pip+pip_peft//:pkg",
-    "@rules_python++pip+pip_gradio//:pkg",
-    "@rules_python++pip+pip_runpod//:pkg",
-    "@rules_python++pip+pip_pillow//:pkg",
-    "@rules_python++pip+pip_spaces//:pkg",
-    "@rules_python++pip+pip_dashscope//:pkg",
+    "@pip_torch//:pkg",
+    "@pip_torchvision//:pkg",
+    "@pip_diffusers//:pkg",
+    "@pip_transformers//:pkg",
+    "@pip_accelerate//:pkg",
+    "@pip_huggingface_hub//:pkg",
+    "@pip_sentencepiece//:pkg",
+    "@pip_safetensors//:pkg",
+    "@pip_packaging//:pkg",
+    "@pip_pyyaml//:pkg",
+    "@pip_peft//:pkg",
+    "@pip_gradio//:pkg",
+    "@pip_runpod//:pkg",
+    "@pip_pillow//:pkg",
+    "@pip_spaces//:pkg",
+    "@pip_dashscope//:pkg",
 ]
 
 py_binary(
