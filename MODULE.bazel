@@ -7,6 +7,7 @@ bazel_dep(name = "rules_python", version = "0.40.0")
 bazel_dep(name = "rules_oci", version = "1.8.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
+bazel_dep(name = "pip", version = "0.4.0")
 
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
@@ -16,18 +17,10 @@ oci.pull(
 )
 use_repo(oci, "runpod_base_image")
 
-pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
-pip.parse(
-    hub_name = "pip",
-    python_version = "3.11",
+use_repo_rule("@pip//:repo_rules.bzl", "pip_install")
+
+pip_install(
+    name = "pip_deps",
     requirements_lock = "//:requirements.txt",
-    repo_overrides = {
-        "packaging": {
-            "build_file_template": "//:packaging.BUILD.tpl",
-        },
-        "safetensors": {
-            "build_file_template": "//:safetensors.BUILD.tpl",
-        },
-    },
+    python_version = "3.11",
 )
-use_repo(pip, "pip")
