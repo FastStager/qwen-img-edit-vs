@@ -2,7 +2,6 @@ torch
 torchvision
 torchao
 kernels
-diffusers
 transformers
 sentencepiece
 safetensors
