@@ -2,10 +2,8 @@ torch
 torchvision
 torchao
 kernels
-diffusers
+diffusers @ git+https://github.com/huggingface/diffusers.git
 transformers
-sentencepiece
-safetensors
 accelerate
 peft
 huggingface-hub
