@@ -14,7 +14,6 @@ _PY_DEPS = [
     "@pip_packaging//:pkg",
     "@pip_pyyaml//:pkg",
     "@pip_peft//:pkg",
-    "@pip_gradio//:pkg",
     "@pip_runpod//:pkg",
     "@pip_pillow//:pkg",
     "@pip_spaces//:pkg",
