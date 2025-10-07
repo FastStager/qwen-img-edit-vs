@@ -5,7 +5,9 @@ load("@pip//:requirements.bzl", "all_requirements")
 
 py_library(
     name = "all_deps",
-    deps = all_requirements,
+    deps = all_requirements + [
+        "@diffusers_repo//:diffusers",
+    ],
 )
 
 py_binary(
@@ -55,6 +57,7 @@ oci_image(
         ":app_layer",
         ":model_layer",
         "@pip//:all_whl_layer",
+        "@diffusers_repo//:diffusers_layer",
     ],
 )
 
@@ -63,4 +66,14 @@ oci_push(
     image = ":qwen_image_server",
     repository = "index.docker.io/$(DOCKER_USERNAME)/qwen-image-server-bazel",
     tags = ["latest"],
+)
+
+py_library(
+    name = "diffusers_layer_lib",
+    deps = ["@diffusers_repo//:diffusers"],
+)
+
+pkg_tar(
+    name = "diffusers_layer",
+    deps = [":diffusers_layer_lib"],
 )

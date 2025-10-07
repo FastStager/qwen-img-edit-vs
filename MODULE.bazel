@@ -8,6 +8,22 @@ bazel_dep(name = "rules_oci", version = "1.8.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "diffusers_repo",
+    strip_prefix = "diffusers-main",
+    urls = ["https://github.com/huggingface/diffusers/archive/refs/heads/main.zip"],
+    build_file_content = """
+load("@rules_python//python:defs.bzl", "py_library")
+py_library(
+    name = "diffusers",
+    srcs = glob(["src/diffusers/**/*.py"]),
+    imports = ["src"],
+    visibility = ["//visibility:public"],
+)
+    """,
+)
+
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
     name = "runpod_base_image",
