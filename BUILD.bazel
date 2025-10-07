@@ -1,18 +1,31 @@
+load("@rules_python//python:defs.bzl", "py_binary")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
-load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
-load("@pip//:requirements.bzl", "all_requirements")
 
-py_library(
-    name = "all_deps",
-    deps = all_requirements,
-)
+_PY_DEPS = [
+    "@rules_python++pip+pip_torch//:pkg",
+    "@rules_python++pip+pip_torchvision//:pkg",
+    "@rules_python++pip+pip_diffusers//:pkg",
+    "@rules_python++pip+pip_transformers//:pkg",
+    "@rules_python++pip+pip_accelerate//:pkg",
+    "@rules_python++pip+pip_huggingface_hub//:pkg",
+    "@rules_python++pip+pip_sentencepiece//:pkg",
+    "@rules_python++pip+pip_safetensors//:pkg",  
+    "@rules_python++pip+pip_packaging//:pkg",    
+    "@rules_python++pip+pip_pyyaml//:pkg",
+    "@rules_python++pip+pip_peft//:pkg",
+    "@rules_python++pip+pip_gradio//:pkg",
+    "@rules_python++pip+pip_runpod//:pkg",
+    "@rules_python++pip+pip_pillow//:pkg",
+    "@rules_python++pip+pip_spaces//:pkg",
+    "@rules_python++pip+pip_dashscope//:pkg",
+]
 
 py_binary(
     name = "compile_model_bin",
     srcs = ["compile_model.py"],
     main = "compile_model.py",
-    deps = [":all_deps"],
+    deps = _PY_DEPS,        
     python_version = "PY3",
 )
 
@@ -21,10 +34,7 @@ genrule(
     tools = [":compile_model_bin"],
     cmd = "$(location :compile_model_bin)",
     outs = ["compiled_pipe.pt"],
-    tags = [
-        "requires-gpu",
-        "timeout=long",
-    ],
+    tags = ["requires-gpu", "timeout=long"],
 )
 
 pkg_tar(
@@ -34,7 +44,8 @@ pkg_tar(
         "optimization.py",
         "app.py",
         "README.md",
-    ]) + glob(["qwenimage/**/*.py"]),
+        "qwenimage/**/*.py",
+    ]),
     package_dir = "/app",
 )
 
@@ -47,14 +58,10 @@ pkg_tar(
 oci_image(
     name = "qwen_image_server",
     base = "@runpod_base_image//image",
-    entrypoint = [
-        "/usr/bin/python3.11",
-        "/app/handler.py",
-    ],
+    entrypoint = ["/usr/bin/python3.11", "/app/handler.py"],
     tars = [
         ":app_layer",
         ":model_layer",
-        "@pip//:all_whl_layer",
     ],
 )
 
