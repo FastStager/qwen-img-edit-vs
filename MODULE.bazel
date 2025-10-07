@@ -21,5 +21,13 @@ pip.parse(
     hub_name = "pip",
     python_version = "3.11",
     requirements_lock = "//:requirements.txt",
+    repo_overrides = {
+        "packaging": {
+            "build_file_template": "//:packaging.BUILD.tpl",
+        },
+        "safetensors": {
+            "build_file_template": "//:safetensors.BUILD.tpl",
+        },
+    },
 )
 use_repo(pip, "pip")
