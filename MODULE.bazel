@@ -8,21 +8,6 @@ bazel_dep(name = "rules_oci", version = "1.8.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 
-python = use_extension("@rules_python//python/extensions:python.bzl", "python")
-
-python.py_runtime(
-    name = "runpod_py_runtime",
-    interpreter_path = "/usr/bin/python3.11",
-    python_version = "3.11",
-)
-
-python.toolchain(
-    name = "runpod_py_toolchain",
-    py_runtime = ":runpod_py_runtime",
-)
-
-register_toolchains("//:runpod_py_toolchain")
-
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
     name = "runpod_base_image",

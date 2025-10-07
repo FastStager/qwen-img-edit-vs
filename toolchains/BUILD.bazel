@@ -1,9 +1,66 @@
-package(default_visibility = ["//visibility:public"])
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("@pip//:requirements.bzl", "all_requirements")
 
-load("@rules_python//python:toolchain.bzl", "py_toolchain")
+py_library(
+    name = "all_deps",
+    deps = all_requirements,
+)
 
-py_toolchain(
-    name = "runpod_python_toolchain",
-    path = "/usr/bin/python3.11",
-    python_version = "3.11",
+py_binary(
+    name = "compile_model_bin",
+    srcs = ["compile_model.py"],
+    main = "compile_model.py",
+    deps = [":all_deps"],
+    python_version = "PY3",
+)
+
+genrule(
+    name = "compiled_model",
+    tools = [":compile_model_bin"],
+    cmd = "$(location :compile_model_bin)",
+    outs = ["compiled_pipe.pt"],
+    tags = [
+        "requires-gpu",
+        "timeout=long",
+    ],
+)
+
+pkg_tar(
+    name = "app_layer",
+    srcs = glob([
+        "handler.py",
+        "optimization.py",
+        "app.py",
+        "README.md",
+    ]) + glob(["qwenimage/**/*.py"]),
+    package_dir = "/app",
+)
+
+pkg_tar(
+    name = "model_layer",
+    srcs = [":compiled_model"],
+    package_dir = "/app",
+)
+
+oci_image(
+    name = "qwen_image_server",
+    base = "@runpod_base_image//image",
+    entrypoint = [
+        "/usr/bin/python3.11",
+        "/app/handler.py",
+    ],
+    tars = [
+        ":app_layer",
+        ":model_layer",
+        "@pip//:all_whl_layer",
+    ],
+)
+
+oci_push(
+    name = "push_image",
+    image = ":qwen_image_server",
+    repository = "index.docker.io/$(DOCKER_USERNAME)/qwen-image-server-bazel",
+    tags = ["latest"],
 )
